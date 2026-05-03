@@ -1,4 +1,30 @@
+# Node
+node_modules/
+dist/
+*.log
+.env
+
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraformrc
+terraform.rc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-node_modules
+Thumbs.db
+EOF
+
+# Others
 .tmp
 npm-debug.log
