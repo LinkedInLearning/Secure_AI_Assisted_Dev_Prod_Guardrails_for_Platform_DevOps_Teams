@@ -1,0 +1,68 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # TypeScript service checks
+  sensor-api:
+    name: Sensor API - Lint, Test, Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/sensor-api
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: services/sensor-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+  # Terraform validation
+  terraform:
+    name: Terraform - Validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/azure
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.1
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
