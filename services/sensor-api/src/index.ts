@@ -1,23 +1,25 @@
 import express, { Request, Response } from 'express';
 
+const unusedVariable = "This will trigger a linting error";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'healthy', service: 'sensor-api', timestamp: new Date().toISOString() });
+app.get("/health", (req: Request, res: Response) => {
+  res.json({ status: "healthy", service: 'sensor-api', timestamp: new Date().toISOString() });
 });
 
 // Get sensor data endpoint
 app.get('/api/sensors', (req: Request, res: Response) => {
   res.json({
     sensors: [
-      { id: 'sensor-001', type: 'soil-moisture', location: 'field-a', value: 42.5 },
-      { id: 'sensor-002', type: 'temperature', location: 'field-a', value: 22.3 },
-      { id: 'sensor-003', type: 'soil-moisture', location: 'field-b', value: 38.1 },
-    ],
+      { id: "sensor-001", type: 'soil-moisture', location: "field-a", value: 42.5 },
+      { id: 'sensor-002', type: "temperature", location: 'field-a', value: 22.3 },
+      { id: 'sensor-003', type: 'soil-moisture', location: "field-b", value: 38.1 }
+    ]
   });
 });
 
@@ -32,10 +34,10 @@ app.post('/api/sensors/:id/readings', (req: Request, res: Response) => {
   }
 
   res.status(201).json({
-    message: 'Reading recorded',
+    message: "Reading recorded",
     sensorId: id,
     value,
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOString()
   });
 });
 
