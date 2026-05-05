@@ -1,0 +1,11 @@
+# Workflow files require platform team approval
+/.github/workflows/ @teriana-harvest/platform-team
+
+# Infrastructure changes require platform team approval
+/infrastructure/ @teriana-harvest/platform-team
+
+# Pre-commit configuration requires approval
+/.pre-commit-config.yaml @teriana-harvest/platform-team
+
+# Security and compliance-critical files
+/CODEOWNERS @teriana-harvest/platform-team

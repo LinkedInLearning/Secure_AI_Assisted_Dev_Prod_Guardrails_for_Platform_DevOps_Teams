@@ -1,0 +1,60 @@
+name: Validate Workflow Changes
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+
+jobs:
+  validate:
+    name: Validate Workflow Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for conditional bypasses
+        run: |
+          echo "Checking for conditional bypass patterns..."
+          if grep -r "if.*startsWith.*hotfix" .github/workflows/*.yml; then
+            echo "❌ ERROR: Hotfix bypass detected"
+            exit 1
+          fi
+          if grep -r "if.*startsWith.*emergency" .github/workflows/*.yml; then
+            echo "❌ ERROR: Emergency bypass detected"
+            exit 1
+          fi
+          echo "✅ No branch-based bypasses found"
+
+      - name: Check for test skip patterns
+        run: |
+          echo "Checking for test skip patterns..."
+          if grep -r "skip.*test" .github/workflows/*.yml; then
+            echo "❌ ERROR: Test skip pattern detected"
+            exit 1
+          fi
+          if grep -r "skip-ci" .github/workflows/*.yml; then
+            echo "❌ ERROR: CI skip pattern detected"
+            exit 1
+          fi
+          echo "✅ No test skip patterns found"
+
+      - name: Check for unsafe triggers
+        run: |
+          echo "Checking for unsafe workflow triggers..."
+          if grep -r "pull_request_target" .github/workflows/*.yml; then
+            echo "⚠️  WARNING: pull_request_target detected - ensure this is intentional"
+          fi
+          echo "✅ Trigger validation complete"
+
+      - name: Validate all jobs have dependencies
+        run: |
+          echo "Checking that deploy jobs have proper dependencies..."
+          # This is a simplified check - would be more sophisticated in production
+          if grep -A 10 "deploy" .github/workflows/ci.yml | grep -q "needs:"; then
+            echo "✅ Deploy jobs have dependencies defined"
+          else
+            echo "❌ ERROR: Deploy jobs missing required dependencies"
+            exit 1
+          fi
