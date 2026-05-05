@@ -1,0 +1,36 @@
+# GOOD: Validates workflow changes before merge
+name: Validate Workflows
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+
+jobs:
+  validate:
+    name: Validate Workflow Changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for conditional bypasses
+        run: |
+          if grep -r "if.*startsWith.*hotfix" .github/workflows/; then
+            echo "ERROR: Conditional bypass detected in workflow"
+            exit 1
+          fi
+
+      - name: Check for test skips
+        run: |
+          if grep -r "skip.*test" .github/workflows/; then
+            echo "ERROR: Test skip pattern detected"
+            exit 1
+          fi
+
+      - name: Validate workflow syntax
+        run: |
+          for workflow in .github/workflows/*.yml; do
+            echo "Validating $workflow"
+            # GitHub Actions syntax validation would go here
+          done

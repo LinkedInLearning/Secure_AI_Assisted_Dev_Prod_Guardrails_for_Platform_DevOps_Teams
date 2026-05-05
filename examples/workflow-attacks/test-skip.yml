@@ -1,0 +1,18 @@
+# BAD: Skips tests based on commit message
+name: CI with Test Skip
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    # DANGEROUS: Can bypass tests with commit message
+    if: ${{ !contains(github.event.head_commit.message, '[skip tests]') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run tests
+        run: npm test

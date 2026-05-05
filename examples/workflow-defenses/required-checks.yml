@@ -1,0 +1,38 @@
+# GOOD: All checks must complete, no dependencies that allow skipping
+name: Required Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    # No conditionals - always runs
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Security scan
+        run: npm audit
+
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    # No skip patterns
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run all tests
+        run: npm test
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    # Explicitly depends on security and tests
+    needs: [ security, tests ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Deploy
+        run: echo "Deploy only after checks pass"

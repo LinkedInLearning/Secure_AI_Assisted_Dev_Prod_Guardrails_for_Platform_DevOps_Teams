@@ -1,0 +1,20 @@
+# BAD: Skips security scan for "hotfix" branches
+name: CI with Bypass
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    # DANGEROUS: Creates fast path around security
+    if: ${{ !startsWith(github.head_ref, 'hotfix/') }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run security scan
+        run: npm audit

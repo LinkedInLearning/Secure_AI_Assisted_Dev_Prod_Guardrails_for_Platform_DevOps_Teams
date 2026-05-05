@@ -1,0 +1,28 @@
+# BAD: Deployment happens before security validation
+name: CI with Early Deploy
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # DANGEROUS: Deploy happens first
+      - name: Deploy to staging
+        run: ./deploy.sh staging
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    # Runs in parallel, doesn't block deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Security scan
+        run: npm audit
