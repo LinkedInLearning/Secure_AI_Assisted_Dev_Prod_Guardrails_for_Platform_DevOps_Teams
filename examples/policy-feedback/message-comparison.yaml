@@ -1,0 +1,40 @@
+# Example manifest that triggers policy violations
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-processor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sensor-processor
+  template:
+    metadata:
+      labels:
+        app: sensor-processor
+    spec:
+      containers:
+      - name: processor
+        image: teriana/sensor-processor:latest  # Policy violation: :latest tag
+        ports:
+        - containerPort: 8080
+        # Missing: resources.limits (Policy violation)
+        # Missing: livenessProbe (Policy violation)
+
+---
+# Bad policy output:
+# ❌ Policy violation: resource limits
+# ❌ Health probe missing
+# ❌ Invalid image tag
+
+---
+# Good policy output:
+# ❌ Container 'processor' missing memory limit.
+#    Add: resources.limits.memory: '512Mi'
+#
+# ❌ Container 'processor' missing liveness probe.
+#    Add: livenessProbe.httpGet.path: /health
+#
+# ❌ Container 'processor' uses ':latest' tag.
+#    Change: image: teriana/sensor-processor:v1.2.3
