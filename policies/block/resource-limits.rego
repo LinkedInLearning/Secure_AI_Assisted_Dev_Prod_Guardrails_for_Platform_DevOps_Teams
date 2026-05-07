@@ -1,6 +1,10 @@
 package kubernetes.resources
 
-# Should this BLOCK or WARN?
+# SEVERITY: BLOCK
+# REASONING: Memory exhaustion can crash neighboring pods on same node
+# BLAST RADIUS: High - affects entire node
+# REVERSIBILITY: Requires redeployment
+
 deny[msg] {
     input.kind == "Deployment"
     container := input.spec.template.spec.containers[_]

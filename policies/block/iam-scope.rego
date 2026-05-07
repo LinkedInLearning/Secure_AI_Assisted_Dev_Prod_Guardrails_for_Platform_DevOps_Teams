@@ -1,6 +1,10 @@
 package terraform.iam
 
-# Should this BLOCK or WARN?
+# SEVERITY: BLOCK
+# REASONING: Subscription-wide access violates least privilege
+# BLAST RADIUS: Critical - access to all resources in subscription
+# REVERSIBILITY: Medium - requires understanding service needs to scope properly
+
 deny[msg] {
     resource := input.resource.azurerm_role_assignment[name]
     contains(resource.scope, "subscription")

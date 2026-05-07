@@ -1,7 +1,11 @@
 package kubernetes.availability
 
-# Should this BLOCK or WARN?
-deny[msg] {
+# SEVERITY: WARN
+# REASONING: Creates risk during updates but not immediate failure
+# BLAST RADIUS: Medium - affects availability during deployments
+# REVERSIBILITY: Easy - replica count can be increased anytime
+
+warn[msg] {
     input.kind == "Deployment"
     input.spec.replicas < 2
     msg := sprintf(

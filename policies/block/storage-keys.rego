@@ -1,6 +1,10 @@
 package terraform.auth
 
-# Should this BLOCK or WARN?
+# SEVERITY: BLOCK
+# REASONING: Storage keys cannot be scoped or safely rotated
+# BLAST RADIUS: High - full access to storage account
+# REVERSIBILITY: Medium - requires code changes to use managed identity
+
 deny[msg] {
     resource := input.resource.azurerm_linux_function_app[name]
     setting := resource.app_settings[key]
