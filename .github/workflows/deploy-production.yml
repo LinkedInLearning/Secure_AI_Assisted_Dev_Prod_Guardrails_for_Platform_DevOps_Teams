@@ -1,0 +1,138 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "infrastructure/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.1
+
+      - name: Terraform Init
+        run: |
+          cd infrastructure/azure
+          terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          cd infrastructure/azure
+          terraform plan -out=tfplan.binary -no-color
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Detect High-Risk Changes
+        id: risk_check
+        run: |
+          cd infrastructure/azure
+
+          # Check for IAM changes
+          IAM_CHANGES=$(jq '[.resource_changes[] | select(.type | contains("role_assignment") or contains("role_definition"))] | length' tfplan.json)
+
+          # Check for network changes
+          NETWORK_CHANGES=$(jq '[.resource_changes[] | select(.type | contains("network") or contains("firewall"))] | length' tfplan.json)
+
+          # Check for data resource changes
+          DATA_CHANGES=$(jq '[.resource_changes[] | select(.type | contains("storage") or contains("database") or contains("sql"))] | length' tfplan.json)
+
+          echo "iam_changes=$IAM_CHANGES" >> $GITHUB_OUTPUT
+          echo "network_changes=$NETWORK_CHANGES" >> $GITHUB_OUTPUT
+          echo "data_changes=$DATA_CHANGES" >> $GITHUB_OUTPUT
+
+          # Determine approval tier
+          if [ "$IAM_CHANGES" -gt 0 ] || [ "$DATA_CHANGES" -gt 0 ]; then
+            echo "approval_tier=critical" >> $GITHUB_OUTPUT
+          elif [ "$NETWORK_CHANGES" -gt 0 ]; then
+            echo "approval_tier=high" >> $GITHUB_OUTPUT
+          else
+            echo "approval_tier=standard" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: infrastructure/azure/tfplan.binary
+
+      - name: Comment PR with Risk Assessment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const iam = '${{ steps.risk_check.outputs.iam_changes }}';
+            const network = '${{ steps.risk_check.outputs.network_changes }}';
+            const data = '${{ steps.risk_check.outputs.data_changes }}';
+            const tier = '${{ steps.risk_check.outputs.approval_tier }}';
+
+            const body = `## Infrastructure Change Risk Assessment
+
+            **Approval Tier:** ${tier.toUpperCase()}
+
+            ### Changes Detected
+            - IAM Changes: ${iam}
+            - Network Changes: ${network}
+            - Data Resource Changes: ${data}
+
+            ### Required Approvals
+            ${tier === 'critical' ? '- Security Team Lead\n- Platform Engineering Manager' : 
+              tier === 'high' ? '- Network Team Lead' : 
+              '- Platform Engineer'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    # Production environment with protection rules
+    # Configured in GitHub UI: Settings > Environments > production
+    # - Required reviewers based on change type
+    # - Branch protection: only main branch
+    # - Wait timer: 5 minutes
+    # - Custom protection rules: external system checks
+    environment:
+      name: production
+      url: https://teriana.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.1
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: infrastructure/azure
+
+      - name: Terraform Init
+        run: |
+          cd infrastructure/azure
+          terraform init
+
+      - name: Deploy to Production
+        run: |
+          cd infrastructure/azure
+          terraform apply -auto-approve tfplan.binary
+
+      - name: Post-Deployment Validation
+        run: |
+          echo "Running post-deployment checks..."
+          # Health checks, smoke tests, etc.

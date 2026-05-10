@@ -1,0 +1,38 @@
+name: Deploy to Staging
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "infrastructure/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://staging.teriana.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.1
+
+      - name: Terraform Init
+        run: |
+          cd infrastructure/azure
+          terraform init
+
+      - name: Terraform Plan
+        run: |
+          cd infrastructure/azure
+          terraform plan -out=tfplan.binary
+
+      - name: Deploy to Staging
+        run: |
+          cd infrastructure/azure
+          terraform apply -auto-approve tfplan.binary
