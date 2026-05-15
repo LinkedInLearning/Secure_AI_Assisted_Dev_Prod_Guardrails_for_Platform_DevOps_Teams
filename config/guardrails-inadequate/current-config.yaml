@@ -1,0 +1,38 @@
+# Current Rollback Configuration (INADEQUATE)
+# This configuration failed to catch late-stage degradation
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollback-config-inadequate
+  namespace: production
+data:
+  rollback-triggers.yaml: |
+    # Error rate threshold
+    error_rate:
+      threshold: 0.05              # 5%
+      window: 2m
+      consecutive_failures: 3
+      # BUG: Only monitored up to 50% traffic, disabled after that
+      enabled_until_traffic: 50
+
+    # Latency threshold
+    latency:
+      p95:
+        threshold: 500             # 500ms
+        window: 2m
+        consecutive_failures: 3
+      # MISSING: No P99 monitoring
+      # MISSING: No latency regression rate monitoring
+
+    # Throughput threshold
+    throughput:
+      drop_threshold: 0.70         # 30% drop
+      window: 5m
+      consecutive_failures: 2
+      # PROBLEM: 30% drop too large, should be 20%
+
+    # MISSING: Connection pool monitoring
+    # MISSING: Memory growth rate monitoring
+    # MISSING: Resource exhaustion signals
+    # MISSING: Progressive degradation detection
