@@ -1,0 +1,27 @@
+# UNSAFE: No resource limits
+# Pod can consume unlimited memory and crash the node
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-processor
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: sensor-processor
+  template:
+    metadata:
+      labels:
+        app: sensor-processor
+    spec:
+      containers:
+        - name: processor
+          image: teriana/sensor-processor:v1.2.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PROCESSING_MODE
+              value: "batch"
+            # Missing: resources.limits and resources.requests
+            # Risk: Memory leak can crash neighboring pods on same node

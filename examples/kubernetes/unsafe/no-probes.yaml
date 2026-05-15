@@ -1,0 +1,32 @@
+# UNSAFE: No liveness or readiness probes
+# Kubernetes cannot detect when container becomes unresponsive
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          # Missing: livenessProbe and readinessProbe
+          # Risk: Dead containers continue receiving traffic
+          # Risk: New pods receive traffic before ready

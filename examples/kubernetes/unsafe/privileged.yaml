@@ -1,0 +1,36 @@
+# UNSAFE: Privileged container with root access
+# Container can access host resources and other pods
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: log-collector
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: log-collector
+  template:
+    metadata:
+      labels:
+        app: log-collector
+    spec:
+      containers:
+        - name: collector
+          image: teriana/log-collector:v1.0.0
+          securityContext:
+            privileged: true # DANGEROUS
+            runAsUser: 0 # Running as root
+          volumeMounts:
+            - name: host-logs
+              mountPath: /var/log/host
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+      volumes:
+        - name: host-logs
+          hostPath:
+            path: /var/log
+          # Risk: Privileged container can escape to host
+          # Risk: Root user can access any file on node
