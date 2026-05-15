@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aggregator-config
+  namespace: production
+data:
+  config.yaml: |
+    processing:
+      batch_size: 1000
+      timeout_seconds: 30
+      retry_attempts: 3
+
+    api:
+      port: 8080
+      max_connections: 100
+
+    metrics:
+      port: 9090
+      enabled: true
