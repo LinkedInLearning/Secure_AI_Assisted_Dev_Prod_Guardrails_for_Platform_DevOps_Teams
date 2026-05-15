@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-rollback-trigger
+  namespace: production
+spec:
+  metrics:
+    - name: canary-error-rate
+      interval: 1m
+      failureLimit: 3
+      successCondition: result < 0.05
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              status=~"5..",
+              version="canary"
+            }[2m])) 
+            / 
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              version="canary"
+            }[2m]))
+
+    - name: error-rate-regression
+      interval: 1m
+      failureLimit: 3
+      # Rollback if canary error rate is 2x stable error rate
+      successCondition: result < 2.0
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            (
+              sum(rate(http_requests_total{
+                app="sensor-data-api",
+                status=~"5..",
+                version="canary"
+              }[2m])) 
+              / 
+              sum(rate(http_requests_total{
+                app="sensor-data-api",
+                version="canary"
+              }[2m]))
+            )
+            /
+            (
+              sum(rate(http_requests_total{
+                app="sensor-data-api",
+                status=~"5..",
+                version="stable"
+              }[2m])) 
+              / 
+              sum(rate(http_requests_total{
+                app="sensor-data-api",
+                version="stable"
+              }[2m]))
+            )

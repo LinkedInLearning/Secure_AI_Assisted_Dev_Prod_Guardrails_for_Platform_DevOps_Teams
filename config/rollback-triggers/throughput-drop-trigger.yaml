@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: throughput-drop-trigger
+  namespace: production
+spec:
+  metrics:
+    - name: throughput-anomaly
+      interval: 2m
+      failureLimit: 2
+      # Rollback if canary throughput drops >30% vs stable
+      successCondition: result > 0.70
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              version="canary"
+            }[5m]))
+            /
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              version="stable"
+            }[5m]))

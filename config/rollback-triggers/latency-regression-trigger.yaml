@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-regression-trigger
+  namespace: production
+spec:
+  metrics:
+    - name: latency-regression-check
+      interval: 1m
+      failureLimit: 3
+      # Rollback if canary P95 is 1.5x slower than stable
+      successCondition: result < 1.5
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            (
+              histogram_quantile(0.95,
+                sum(rate(http_request_duration_ms_bucket{
+                  app="sensor-data-api",
+                  version="canary"
+                }[2m])) by (le)
+              )
+            )
+            /
+            (
+              histogram_quantile(0.95,
+                sum(rate(http_request_duration_ms_bucket{
+                  app="sensor-data-api",
+                  version="stable"
+                }[2m])) by (le)
+              )
+            )

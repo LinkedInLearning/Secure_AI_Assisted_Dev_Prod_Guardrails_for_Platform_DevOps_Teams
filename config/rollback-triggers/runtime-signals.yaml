@@ -1,0 +1,116 @@
+# Automated Rollback Triggers
+# Runtime signals that trigger automatic rollback
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollback-triggers
+  namespace: production
+data:
+  triggers.yaml: |
+    # Error rate thresholds
+    error_rate:
+      # Rollback if error rate exceeds threshold
+      threshold: 0.05              # 5% error rate
+      window: 2m                   # Over 2 minute window
+      consecutive_failures: 3      # 3 consecutive breaches
+      severity: critical
+      
+      # Progressive thresholds based on traffic percentage
+      progressive_thresholds:
+        - traffic_percentage: 5
+          threshold: 0.10          # Allow 10% errors at 5% traffic
+        - traffic_percentage: 25
+          threshold: 0.05          # Tighten to 5% at 25% traffic
+        - traffic_percentage: 50
+          threshold: 0.03          # Tighten to 3% at 50% traffic
+
+    # Latency thresholds
+    latency:
+      p95:
+        threshold: 500             # 500ms
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      p99:
+        threshold: 2000            # 2s
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      # Latency regression (canary vs stable)
+      regression_threshold: 1.5    # Rollback if canary 50% slower than stable
+
+    # Success rate threshold
+    success_rate:
+      threshold: 0.95              # 95% minimum success rate
+      window: 2m
+      consecutive_failures: 3
+      severity: critical
+
+    # Throughput anomaly
+    throughput:
+      # Rollback if throughput drops significantly
+      drop_threshold: 0.30         # 30% drop compared to stable
+      window: 5m
+      consecutive_failures: 2
+      severity: high
+
+    # Custom business metrics
+    custom_metrics:
+      # Payment processing success rate
+      payment_success_rate:
+        threshold: 0.98            # 98% minimum
+        window: 5m
+        consecutive_failures: 2
+        severity: critical
+      
+      # Data processing accuracy
+      data_accuracy:
+        threshold: 0.999           # 99.9% minimum
+        window: 10m
+        consecutive_failures: 2
+        severity: critical
+
+    # Health check failures
+    health_checks:
+      liveness_failures:
+        threshold: 2               # Rollback after 2 failed liveness probes
+        severity: critical
+      
+      readiness_failures:
+        threshold: 5               # Rollback after 5 failed readiness probes
+        consecutive: true
+        severity: high
+
+    # Resource exhaustion
+    resources:
+      cpu_usage:
+        threshold: 0.90            # 90% CPU
+        window: 5m
+        consecutive_failures: 3
+        severity: high
+      
+      memory_usage:
+        threshold: 0.95            # 95% memory
+        window: 5m
+        consecutive_failures: 3
+        severity: critical
+      
+      # OOM kills
+      oom_kills:
+        threshold: 1               # Any OOM kill triggers rollback
+        severity: critical
+
+    # Rollback execution
+    rollback_config:
+      mode: immediate              # immediate | gradual
+      traffic_shift_duration: 30s  # How fast to shift traffic back
+      keep_canary_pods: true       # Keep for debugging
+      notification_channels:
+        - slack
+        - pagerduty
+      
+      # Prevent rollback loops
+      cooldown_period: 10m         # Wait 10min before allowing new deployment
