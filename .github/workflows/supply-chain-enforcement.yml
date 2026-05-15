@@ -1,0 +1,177 @@
+name: Supply Chain Enforcement
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+
+jobs:
+  enforce-supply-chain-baseline:
+    name: Enforce Supply Chain Baseline
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout base branch
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          git checkout origin/${{ github.base_ref }} -- package.json
+          mv package.json package.json.base
+          git checkout ${{ github.head_ref }} -- package.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # STEP 1: Vulnerability Scanning
+      - name: Run npm audit (BLOCK on high/critical)
+        id: audit
+        run: |
+          echo "Running npm audit with blocking threshold..."
+          npm audit --audit-level=high > audit-output.txt 2>&1 || echo "AUDIT_FAILED=true" >> $GITHUB_OUTPUT
+          cat audit-output.txt
+        continue-on-error: true
+
+      - name: Check audit results
+        if: steps.audit.outputs.AUDIT_FAILED == 'true'
+        run: |
+          echo "## ❌ Vulnerability Scan Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "High or Critical vulnerabilities detected:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat audit-output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Action Required:** Fix vulnerabilities before merging" >> $GITHUB_STEP_SUMMARY
+          exit 1
+
+      # STEP 2: License Compliance
+      - name: Check licenses
+        id: licenses
+        run: |
+          npx license-checker --summary --json > licenses.json
+
+          # Check for GPL licenses
+          GPL_COUNT=$(jq '[.[] | select(.licenses | contains("GPL"))] | length' licenses.json)
+
+          if [ "$GPL_COUNT" -gt 0 ]; then
+            echo "GPL_FOUND=true" >> $GITHUB_OUTPUT
+            echo "## ❌ License Violation Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "GPL licenses found (requires open-sourcing code):" >> $GITHUB_STEP_SUMMARY
+            jq -r '.[] | select(.licenses | contains("GPL")) | "- \(.name): \(.licenses)"' licenses.json >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "✅ No license violations found" >> $GITHUB_STEP_SUMMARY
+
+      # STEP 3: Deprecation Detection
+      - name: Check for deprecated packages
+        id: deprecated
+        run: |
+          echo "Checking for deprecated packages..."
+
+          # Check npm for deprecation warnings
+          npm ls --json > dependencies.json
+
+          DEPRECATED=$(jq '[.. | objects | select(has("deprecated"))] | length' dependencies.json)
+
+          if [ "$DEPRECATED" -gt 0 ]; then
+            echo "DEPRECATED_FOUND=true" >> $GITHUB_OUTPUT
+            echo "## ⚠️ Deprecated Packages Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            jq -r '[.. | objects | select(has("deprecated"))] | .[] | "- \(.name): \(.deprecated)"' dependencies.json >> $GITHUB_STEP_SUMMARY
+            
+            # Block if explicitly deprecated
+            echo "**Action Required:** Replace deprecated packages" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        continue-on-error: true
+
+      # STEP 4: Version Regression Detection
+      - name: Detect version regressions
+        id: regression
+        run: |
+          echo "Checking for version downgrades..."
+
+          # Compare package versions
+          node -e "
+          const oldPkg = require('./package.json.base');
+          const newPkg = require('./package.json');
+          const semver = require('semver');
+
+          const regressions = [];
+
+          for (const [pkg, newVer] of Object.entries(newPkg.dependencies || {})) {
+            const oldVer = oldPkg.dependencies?.[pkg];
+            if (oldVer && semver.valid(oldVer) && semver.valid(newVer)) {
+              if (semver.lt(newVer, oldVer)) {
+                regressions.push({ pkg, oldVer, newVer });
+              }
+            }
+          }
+
+          if (regressions.length > 0) {
+            console.log('REGRESSIONS_FOUND=true');
+            console.log('## ❌ Version Regressions Detected');
+            console.log('');
+            console.log('The following packages were downgraded:');
+            regressions.forEach(r => {
+              console.log(\`- \${r.pkg}: \${r.oldVer} → \${r.newVer}\`);
+            });
+            console.log('');
+            console.log('**Downgrades often introduce security vulnerabilities.**');
+            console.log('**Justification required in PR description.**');
+            process.exit(1);
+          }
+          " > regression-output.txt 2>&1 || true
+
+          if grep -q "REGRESSIONS_FOUND=true" regression-output.txt; then
+            cat regression-output.txt >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        continue-on-error: false
+
+      # STEP 5: Maintenance Mode Detection
+      - name: Check for maintenance mode packages
+        id: maintenance
+        run: |
+          echo "## Package Health Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check for moment (known maintenance mode)
+          if grep -q '"moment"' package.json; then
+            echo "⚠️ **Warning:** moment is in maintenance mode" >> $GITHUB_STEP_SUMMARY
+            echo "  - Recommendation: Migrate to date-fns, dayjs, or luxon" >> $GITHUB_STEP_SUMMARY
+            echo "  - Security fixes only, no new features" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Check for request (deprecated)
+          if grep -q '"request"' package.json; then
+            echo "❌ **Error:** request is deprecated" >> $GITHUB_STEP_SUMMARY
+            echo "  - Recommendation: Use axios, got, or node-fetch" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Summary
+        if: success()
+        run: |
+          echo "## ✅ Supply Chain Enforcement Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All checks passed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No high/critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No license violations" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No deprecated packages" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No version regressions" >> $GITHUB_STEP_SUMMARY

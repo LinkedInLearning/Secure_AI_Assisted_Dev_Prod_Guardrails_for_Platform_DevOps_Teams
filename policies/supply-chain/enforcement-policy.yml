@@ -1,0 +1,68 @@
+# Supply Chain Enforcement Policy
+# Defines what blocks deployment vs generates warnings
+
+version: 1.0
+
+vulnerability_policy:
+  # Block deployment for these severity levels
+  block_on_severity:
+    - critical
+    - high
+
+  # Generate warnings for these severity levels
+  warn_on_severity:
+    - moderate
+    - low
+
+  # Allow temporary exceptions (requires approval)
+  exceptions:
+    enabled: true
+    requires_approval: true
+    max_duration_days: 30
+    approval_team: "security-team"
+
+license_policy:
+  # Licenses that block deployment (incompatible with proprietary software)
+  blocked_licenses:
+    - GPL-2.0
+    - GPL-3.0
+    - AGPL-3.0
+
+  # Licenses that generate warnings (need review)
+  warning_licenses:
+    - LGPL-2.1
+    - LGPL-3.0
+
+  # Allowed licenses
+  allowed_licenses:
+    - MIT
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - ISC
+    - 0BSD
+
+deprecation_policy:
+  # Block explicitly deprecated packages
+  block_deprecated: true
+
+  # Warn on maintenance mode packages
+  warn_maintenance_mode: true
+
+  # Grace period before blocking (days)
+  deprecation_grace_period: 90
+
+version_regression_policy:
+  # Detect and block version downgrades
+  block_on_downgrade: true
+
+  # Exceptions for legitimate downgrades
+  allow_with_justification: true
+  justification_required_in: "PR description"
+
+outdated_policy:
+  # Warn when packages are N major versions behind
+  warn_major_versions_behind: 2
+
+  # Warn when packages haven't been updated in N days
+  warn_days_without_update: 365
