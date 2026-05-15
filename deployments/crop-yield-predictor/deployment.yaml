@@ -1,0 +1,103 @@
+# Fixed Kubernetes deployment with all safety configurations
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crop-yield-predictor
+  namespace: production
+  labels:
+    app: crop-yield-predictor
+    version: v1.0.0
+spec:
+  replicas: 3 # High availability
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: crop-yield-predictor
+  template:
+    metadata:
+      labels:
+        app: crop-yield-predictor
+        version: v1.0.0
+    spec:
+      # Security context at pod level
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: predictor
+          image: teriana/crop-yield-predictor:v1.0.0
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            # Resource limits
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi" # Higher for ML model
+              cpu: "2000m"
+
+          # Security context at container level
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false # ML model needs write for temp files
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+
+          # Health probes
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 60 # ML model loading takes time
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          # Environment variables from secrets
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: crop-predictor-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: crop-predictor-secrets
+                  key: redis-url
+            - name: PORT
+              value: "8080"
+            - name: NODE_ENV
+              value: "production"
+        # Anti-affinity for pod distribution
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - crop-yield-predictor
+                topologyKey: kubernetes.io/hostname

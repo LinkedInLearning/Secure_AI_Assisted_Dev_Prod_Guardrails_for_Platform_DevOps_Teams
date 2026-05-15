@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: crop-yield-predictor
+  namespace: production
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: crop-yield-predictor
+  template:
+    metadata:
+      labels:
+        app: crop-yield-predictor
+    spec:
+      # (same pod spec as fixed deployment above)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: predictor
+          image: teriana/crop-yield-predictor:v1.0.0
+          # ... (same container spec)
+
+  strategy:
+    canary:
+      # Progressive traffic shifting
+      steps:
+        - setWeight: 5
+        - pause:
+            duration: 5m
+
+        - setWeight: 25
+        - pause:
+            duration: 5m
+
+        - setWeight: 50
+        - pause:
+            duration: 10m
+
+        - setWeight: 75
+        - pause:
+            duration: 5m
+        # Automated analysis during rollout
+      analysis:
+        templates:
+          - templateName: crop-predictor-error-rate
+          - templateName: crop-predictor-latency
+          - templateName: crop-predictor-prediction-accuracy
+        startingStep: 1
+
+      # Automatic rollback
+      maxSurge: "25%"
+      maxUnavailable: 0
+
+      # Traffic routing
+      trafficRouting:
+        istio:
+          virtualService:
+            name: crop-predictor-vsvc
+            routes:
+              - primary

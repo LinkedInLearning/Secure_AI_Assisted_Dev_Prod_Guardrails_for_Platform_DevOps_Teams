@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: crop-predictor-error-rate
+  namespace: production
+spec:
+  metrics:
+  - name: error-rate
+    interval: 1m
+    successCondition: result < 0.05
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring:9090
+        query: |
+          sum(rate(http_requests_total{
+            app="crop-yield-predictor",
+            status=~"5..",
+            version="canary"
+          }[2m])) 
+          / 
+          sum(rate(http_requests_total{
+            app="crop-yield-predictor",
+            version="canary"
+          }[2m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: crop-predictor-latency
+  namespace: production
+spec:
+  metrics:
+  - name: p95-latency
+    interval: 1m
+    successCondition: result < 2000  # ML predictions can take longer
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring:9090
+        query: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_ms_bucket{
+              app="crop-yield-predictor",
+              version="canary"
+            }[2m])) by (le)
+          )
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: crop-predictor-prediction-accuracy
+  namespace: production
+spec:
+  metrics:
+  - name: prediction-confidence
+    interval: 2m
+    successCondition: result > 0.85  # ML model confidence threshold
+    failureLimit: 3
+    provider:
+      prometheus:
+        address: http://prometheus.monitoring:9090
+        query: |
+          avg(prediction_confidence{
+            app="crop-yield-predictor",
+            version="canary"
+          })
