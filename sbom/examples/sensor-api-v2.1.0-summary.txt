@@ -1,0 +1,70 @@
+Software Bill of Materials (SBOM)
+==================================
+
+Application: sensor-data-api
+Version: 2.1.0
+Build Date: 2026-05-15T10:30:00Z
+Build ID: build-12847
+Git Commit: a3f7c29d
+SBOM Format: CycloneDX 1.4
+
+Total Components: 87
+- Direct dependencies: 10
+- Transitive dependencies: 77
+
+License Summary:
+- MIT: 82 components
+- ISC: 3 components
+- Apache-2.0: 2 components
+
+Direct Dependencies:
+--------------------
+1. express@4.19.2 (MIT)
+   Purpose: Web framework
+   Last updated: 2024-03-25
+
+2. lodash@4.17.21 (MIT)
+   Purpose: Utility library
+   Last updated: 2021-02-20
+
+3. axios@1.7.2 (MIT)
+   Purpose: HTTP client
+   Last updated: 2024-05-21
+
+4. jsonwebtoken@9.0.2 (MIT)
+   Purpose: JWT authentication
+   Last updated: 2023-09-06
+
+5. bcrypt@5.1.1 (MIT)
+   Purpose: Password hashing
+   Last updated: 2023-10-06
+
+6. date-fns@3.6.0 (MIT)
+   Purpose: Date utilities
+   Last updated: 2024-04-04
+
+7. validator@13.12.0 (MIT)
+   Purpose: String validation
+   Last updated: 2024-05-15
+
+8. uuid@9.0.1 (MIT)
+   Purpose: UUID generation
+   Last updated: 2023-11-15
+
+9. dotenv@16.4.5 (MIT)
+   Purpose: Environment variables
+   Last updated: 2024-03-12
+
+10. winston@3.13.0 (MIT)
+    Purpose: Logging
+    Last updated: 2024-04-17
+
+Known Vulnerabilities: 0
+Deprecated Packages: 0
+Outdated Packages: 2
+- express: 4.19.2 (latest: 4.20.0)
+- validator: 13.12.0 (latest: 13.13.0)
+
+SBOM Generation: Automated via CI/CD
+Storage: artifacts.teriana.com/sbom/sensor-api/v2.1.0/
+Signed: Yes (GPG key: 0x1A2B3C4D)

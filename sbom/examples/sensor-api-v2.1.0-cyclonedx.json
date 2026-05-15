@@ -1,0 +1,135 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:3e671687-395b-41f5-a30f-a58921a69b79",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-05-15T10:30:00Z",
+    "tools": [
+      {
+        "vendor": "CycloneDX",
+        "name": "cyclonedx-npm",
+        "version": "1.16.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "sensor-data-api@2.1.0",
+      "name": "sensor-data-api",
+      "version": "2.1.0",
+      "description": "API for sensor data processing",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "express@4.19.2",
+      "name": "express",
+      "version": "4.19.2",
+      "description": "Fast, unopinionated, minimalist web framework",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/express@4.19.2",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "http://expressjs.com/"
+        },
+        {
+          "type": "vcs",
+          "url": "https://github.com/expressjs/express"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "lodash@4.17.21",
+      "name": "lodash",
+      "version": "4.17.21",
+      "description": "Lodash modular utilities",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/lodash@4.17.21",
+      "externalReferences": [
+        {
+          "type": "website",
+          "url": "https://lodash.com/"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "axios@1.7.2",
+      "name": "axios",
+      "version": "1.7.2",
+      "description": "Promise based HTTP client",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/axios@1.7.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "jsonwebtoken@9.0.2",
+      "name": "jsonwebtoken",
+      "version": "9.0.2",
+      "description": "JSON Web Token implementation",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/jsonwebtoken@9.0.2"
+    },
+    {
+      "type": "library",
+      "bom-ref": "bcrypt@5.1.1",
+      "name": "bcrypt",
+      "version": "5.1.1",
+      "description": "A bcrypt library for NodeJS",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "purl": "pkg:npm/bcrypt@5.1.1"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "sensor-data-api@2.1.0",
+      "dependsOn": [
+        "express@4.19.2",
+        "lodash@4.17.21",
+        "axios@1.7.2",
+        "jsonwebtoken@9.0.2",
+        "bcrypt@5.1.1"
+      ]
+    }
+  ]
+}
