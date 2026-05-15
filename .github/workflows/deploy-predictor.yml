@@ -1,0 +1,42 @@
+# AI-generated CI/CD pipeline
+name: Deploy Crop Yield Predictor
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/crop-yield-predictor/**"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: services/crop-yield-predictor
+        run: npm ci
+
+      - name: Run tests
+        working-directory: services/crop-yield-predictor
+        run: npm test
+
+      - name: Build Docker image
+        run: |
+          docker build -t teriana/crop-yield-predictor:v1.0.0 \
+            services/crop-yield-predictor
+
+      - name: Push to registry
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker push teriana/crop-yield-predictor:v1.0.0
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f deployments/crop-yield-predictor/
