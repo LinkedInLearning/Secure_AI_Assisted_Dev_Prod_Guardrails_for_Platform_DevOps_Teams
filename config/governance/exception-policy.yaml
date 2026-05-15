@@ -1,0 +1,116 @@
+# Guardrail Exception Policy
+# Defines who can approve what, duration limits, and tracking requirements
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exception-policy
+  namespace: governance
+data:
+  policy.yaml: |
+    # Exception approval matrix
+    approval_matrix:
+      # Standard exceptions (can be approved by Platform Lead)
+      standard:
+        types:
+          - resource_limits
+          - deployment_schedule
+          - monitoring_threshold
+        max_duration_days: 30
+        approvers:
+          - platform-team-lead
+          - platform-engineering-manager
+        require_remediation_plan: true
+      
+      # Security exceptions (require Security Lead approval)
+      security:
+        types:
+          - vulnerability_threshold
+          - network_policy
+          - authentication_bypass
+          - encryption_requirement
+        max_duration_days: 14
+        approvers:
+          - security-team-lead
+          - ciso
+        require_remediation_plan: true
+        require_risk_assessment: true
+      
+      # Compliance exceptions (require Legal + VP Engineering approval)
+      compliance:
+        types:
+          - license_policy
+          - data_retention
+          - audit_logging
+        max_duration_days: 14
+        approvers:
+          - vp-engineering
+          - legal-counsel
+        require_remediation_plan: true
+        require_legal_review: true
+      
+      # Critical exceptions (require VP Engineering approval)
+      critical:
+        types:
+          - progressive_delivery_skip
+          - production_deployment_override
+          - resource_limit_removal
+        max_duration_days: 7
+        approvers:
+          - vp-engineering
+        require_remediation_plan: true
+        require_incident_context: true
+
+    # Exception duration limits
+    duration_limits:
+      default_max_days: 30
+      absolute_max_days: 90        # Hard limit, requires VP approval
+      warning_threshold_days: 21   # Alert if approaching expiration
+      auto_expire: true
+
+    # Tracking requirements
+    tracking:
+      required_fields:
+        - service_name
+        - guardrail_type
+        - justification
+        - risk_assessment
+        - duration
+        - remediation_plan
+        - remediation_date
+        - approver
+      
+      audit_log:
+        enabled: true
+        retention_days: 730        # 2 years
+      
+      metrics:
+        track_exception_count: true
+        track_exception_duration: true
+        track_exception_type: true
+        alert_on_excessive_exceptions: true
+
+    # Automatic expiration
+    expiration:
+      enabled: true
+      check_interval: daily
+      notification_before_expiry_days: 7
+      actions_on_expiry:
+        - close_exception_issue
+        - revert_configuration
+        - notify_requestor
+        - notify_approver
+
+    # Exception debt reporting
+    reporting:
+      weekly_summary: true
+      recipients:
+        - platform-team-lead
+        - vp-engineering
+      
+      metrics:
+        - active_exceptions_count
+        - exceptions_by_type
+        - exceptions_by_service
+        - average_duration
+        - overdue_remediation_plans

@@ -1,0 +1,112 @@
+name: Guardrail Exception Request
+description: Request a temporary exception to platform guardrails
+title: "[EXCEPTION] "
+labels: [ "exception-request", "governance" ]
+assignees:
+  - platform-team-lead
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Guardrail Exception Request
+
+        Use this template to request a temporary exception to platform guardrails.
+        All exceptions require approval and have a maximum duration of 30 days.
+
+  - type: dropdown
+    id: guardrail-type
+    attributes:
+      label: Which guardrail needs an exception?
+      options:
+        - Vulnerability threshold (High/Critical CVE)
+        - License policy (GPL/AGPL dependency)
+        - Resource limits (CPU/Memory)
+        - Deployment policy (Skip progressive delivery)
+        - Security policy (Network rules)
+        - Other (explain below)
+    validations:
+      required: true
+
+  - type: input
+    id: service-name
+    attributes:
+      label: Service Name
+      description: Which service needs the exception?
+      placeholder: "sensor-data-api"
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Business Justification
+      description: Why is this exception necessary? What problem does it solve?
+      placeholder: |
+        Example: "Critical customer deadline for FarmCo contract. Feature requires library X which has GPL dependency. Legal reviewed and approved limited use for this specific customer integration."
+    validations:
+      required: true
+
+  - type: textarea
+    id: risk-assessment
+    attributes:
+      label: Risk Assessment
+      description: What are the risks? How will they be mitigated?
+      placeholder: |
+        Example: "GPL dependency creates legal risk. Mitigation: Isolated in separate module, documented for removal in Q2, legal waiver obtained."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: duration
+    attributes:
+      label: Exception Duration
+      description: How long do you need this exception?
+      options:
+        - 7 days
+        - 14 days
+        - 30 days
+      default: 0
+    validations:
+      required: true
+
+  - type: input
+    id: remediation-date
+    attributes:
+      label: Remediation Target Date
+      description: When will the underlying issue be fixed?
+      placeholder: "2026-06-15"
+    validations:
+      required: true
+
+  - type: textarea
+    id: remediation-plan
+    attributes:
+      label: Remediation Plan
+      description: How will you fix the underlying issue?
+      placeholder: |
+        Example: "Replace GPL library with MIT alternative. Ticket #1234 created. Engineering estimate: 3 days. Target completion: 2026-06-15."
+    validations:
+      required: true
+
+  - type: input
+    id: approver
+    attributes:
+      label: Required Approver
+      description: Who needs to approve this? (Platform Lead for standard exceptions,
+        VP Engineering for security/compliance)
+      placeholder: "@platform-lead"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acknowledgments
+    attributes:
+      label: Acknowledgments
+      options:
+        - label: I understand this exception will auto-expire after the approved duration
+          required: true
+        - label: I have created a ticket to address the underlying issue
+          required: true
+        - label: I will notify the platform team if the exception is no longer needed
+          required: true
