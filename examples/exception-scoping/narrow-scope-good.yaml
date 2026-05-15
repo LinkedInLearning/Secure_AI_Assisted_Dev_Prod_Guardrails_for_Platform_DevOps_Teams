@@ -1,0 +1,36 @@
+# Good Example: Narrow Scope Exception
+
+exception_request:
+  service: sensor-data-api
+  environment: staging # Specific environment, not all
+  scope: service-env # Narrowest scope
+
+  guardrail: resource_limits
+  justification: |
+    Load testing in staging requires higher memory limits to simulate production scale.
+    Testing with 10x normal traffic to validate performance improvements.
+
+  duration_days: 14
+  requested_by: "@alice-data-team"
+  approver: "@platform-lead"
+
+  blast_radius:
+    affected_services: 1
+    affected_environments: 1
+    affected_users: 0 # Staging only, no production users
+
+  remediation:
+    target_date: "2026-06-01"
+    plan: |
+      1. Complete load testing (3 days)
+      2. Analyze results and optimize queries (5 days)
+      3. Reduce memory requirements through optimization (3 days)
+      4. Return to standard resource limits (1 day)
+    ticket: "DATA-9912"
+
+why_this_is_good:
+  narrow_scope: "Single service in single environment"
+  no_production_impact: "Staging only"
+  short_duration: "14 days with clear plan"
+  proper_approver: "Platform lead appropriate for service-env scope"
+  clear_remediation: "Specific steps and timeline"

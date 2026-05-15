@@ -1,0 +1,84 @@
+# Ownership-Based Approval Rules
+# Service owners cannot approve their own exceptions
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ownership-approval-rules
+  namespace: governance
+data:
+  rules.yaml: |
+    # Core principle: Separation of duties
+    # Service owners cannot approve exceptions for their own services
+
+    ownership_rules:
+      # Service owners are defined in service metadata
+      service_owner_field: "team"
+      
+      # Exception requestor must be different from approver
+      self_approval_blocked: true
+      
+      # Team members cannot approve exceptions for their team's services
+      team_approval_blocked: true
+      
+      # Approval routing based on exception scope
+      routing:
+        # Single service exception → Platform Lead
+        single_service:
+          scope: "service"
+          approver_role: "platform-lead"
+          condition: "requestor_team != platform_team"
+        
+        # Multiple services in one team → Platform Lead
+        team_scoped:
+          scope: "team"
+          approver_role: "platform-lead"
+          additional_approver: "team-lead"  # Team lead must also approve
+          condition: "requestor != team_lead"
+        
+        # Cross-team exception → Engineering Manager
+        cross_team:
+          scope: "organization"
+          approver_role: "engineering-manager"
+          escalation: true
+        
+        # Production-wide exception → VP Engineering
+        production_wide:
+          scope: "global"
+          approver_role: "vp-engineering"
+          require_justification_doc: true
+          max_duration_days: 7
+
+    # Approval delegation rules
+    delegation:
+      # Platform Lead can delegate standard exceptions
+      platform_lead:
+        can_delegate_to:
+          - senior-platform-engineer
+          - staff-platform-engineer
+        cannot_delegate:
+          - security_exceptions
+          - compliance_exceptions
+          - production_wide_exceptions
+      
+      # Security Lead cannot delegate
+      security_lead:
+        can_delegate_to: []
+      
+      # VP Engineering cannot delegate
+      vp_engineering:
+        can_delegate_to: []
+
+    # Approval validation
+    validation:
+      # Check requestor is not approver
+      block_self_approval: true
+      
+      # Check requestor team is not approver team
+      block_same_team_approval: true
+      
+      # Check approver has appropriate authority
+      verify_approver_role: true
+      
+      # Check exception scope matches approver level
+      verify_scope_authority: true

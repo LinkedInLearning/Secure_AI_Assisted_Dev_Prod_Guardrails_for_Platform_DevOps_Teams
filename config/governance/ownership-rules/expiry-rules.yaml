@@ -1,0 +1,71 @@
+# Automatic Expiry Rules
+# No manual renewal, no extension option
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: expiry-enforcement-rules
+  namespace: governance
+data:
+  rules.yaml: |
+    expiry_enforcement:
+      # Hard expiration - no grace period
+      hard_expiry: true
+      grace_period_hours: 0
+      
+      # Auto-revert configuration
+      auto_revert:
+        enabled: true
+        revert_method: "rollback"  # Rollback to pre-exception configuration
+        verify_revert: true
+      
+      # No automatic renewal
+      renewal:
+        automatic_renewal: false
+        manual_renewal_allowed: false
+        require_new_request: true
+        
+        message: |
+          This exception has expired. If you still need an exception:
+          1. File a new exception request
+          2. Explain why the original remediation plan didn't complete
+          3. Provide updated remediation timeline
+          
+          Repeated exceptions for the same issue indicate a systemic problem
+          that should be addressed rather than repeatedly excepted.
+      
+      # Notification schedule
+      notifications:
+        - days_before_expiry: 7
+          recipients: [requestor, approver, service_owner]
+          message: "Exception expires in 7 days"
+        
+        - days_before_expiry: 3
+          recipients: [requestor, approver, service_owner]
+          message: "Exception expires in 3 days"
+        
+        - days_before_expiry: 1
+          recipients: [requestor, approver, service_owner, platform_team]
+          message: "Exception expires tomorrow"
+        
+        - days_before_expiry: 0
+          recipients: [requestor, approver, service_owner, platform_team]
+          message: "Exception expired - configuration reverted"
+      
+      # Post-expiry actions
+      post_expiry:
+        - action: "revert_configuration"
+          automatic: true
+        
+        - action: "close_issue"
+          automatic: true
+        
+        - action: "update_audit_log"
+          automatic: true
+        
+        - action: "notify_stakeholders"
+          automatic: true
+        
+        - action: "check_remediation_status"
+          automatic: true
+          escalate_if_incomplete: true

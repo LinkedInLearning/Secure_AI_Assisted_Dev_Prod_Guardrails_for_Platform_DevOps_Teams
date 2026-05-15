@@ -1,0 +1,39 @@
+# Better Alternative: Break Down Broad Request
+
+# Instead of one global exception, create specific per-service exceptions
+
+exception_1:
+  service: payment-processor
+  environment: production
+  scope: service-env
+  guardrail: vulnerability_threshold
+  justification: |
+    CVE-2026-12345 in payment library. Patch not available yet.
+    Workaround implemented: input validation prevents exploit.
+  duration_days: 7
+  remediation:
+    target_date: "2026-05-25"
+    plan: "Apply patch when available (library vendor commits May 25)"
+    ticket: "SEC-4401"
+
+exception_2:
+  service: user-service
+  environment: production
+  scope: service-env
+  guardrail: vulnerability_threshold
+  justification: |
+    CVE-2026-12346 in auth library. Patch available, requires testing.
+    Lower risk: vulnerability requires authenticated admin access.
+  duration_days: 14
+  remediation:
+    target_date: "2026-06-01"
+    plan: "Test patch in staging (7d), roll out to production (7d)"
+    ticket: "SEC-4402"
+
+why_this_is_better:
+  narrow_scope: "Separate exception per service"
+  specific_justification: "Different CVEs with different risk profiles"
+  appropriate_duration: "7d for high-risk, 14d for lower-risk"
+  clear_remediation: "Specific plans per service"
+  independent_expiration: "Services can be fixed independently"
+  easier_tracking: "Clear which services still have exceptions"

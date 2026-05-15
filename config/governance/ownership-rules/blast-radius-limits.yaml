@@ -1,0 +1,110 @@
+# Blast Radius Limitation Rules
+# Exceptions should be as narrow as possible
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blast-radius-limits
+  namespace: governance
+data:
+  limits.yaml: |
+    # Blast radius scoping hierarchy
+    # Narrowest → Broadest
+
+    scope_hierarchy:
+      # 1. Single service in single environment
+      service_environment:
+        scope: "service-env"
+        format: "{service_name}:{environment}"
+        example: "sensor-api:staging"
+        max_duration_days: 30
+        approver: "platform-lead"
+        preferred: true  # This is the preferred scope
+      
+      # 2. Single service across environments
+      service_all_envs:
+        scope: "service"
+        format: "{service_name}:*"
+        example: "sensor-api:*"
+        max_duration_days: 14
+        approver: "platform-lead"
+        require_justification: "Why all environments?"
+      
+      # 3. Multiple services in one team
+      team_services:
+        scope: "team"
+        format: "team:{team_name}"
+        example: "team:data-platform"
+        max_duration_days: 14
+        approver: "engineering-manager"
+        require_justification: "Why multiple services?"
+      
+      # 4. Cross-team services
+      cross_team:
+        scope: "cross-team"
+        format: "teams:{team1},{team2}"
+        max_duration_days: 7
+        approver: "vp-engineering"
+        require_justification: "Why cross-team?"
+        require_alternative_analysis: true
+      
+      # 5. Production-wide (strongly discouraged)
+      production_wide:
+        scope: "global"
+        format: "*:production"
+        max_duration_days: 7
+        approver: "vp-engineering"
+        require_incident_context: true
+        require_written_justification: true
+        alert_executive_team: true
+
+    # Duration guidance based on scope
+    duration_guidelines:
+      service_environment:
+        recommended_days: 14
+        maximum_days: 30
+        message: "Use shortest duration that solves the problem"
+      
+      service_all_envs:
+        recommended_days: 7
+        maximum_days: 14
+        message: "Consider separate exceptions per environment"
+      
+      team_services:
+        recommended_days: 7
+        maximum_days: 14
+        message: "Consider separate exceptions per service"
+      
+      cross_team:
+        recommended_days: 3
+        maximum_days: 7
+        message: "Broad scope requires short duration"
+      
+      production_wide:
+        recommended_days: 1
+        maximum_days: 7
+        message: "Global exceptions are high risk - minimize duration"
+
+    # Scope validation rules
+    validation:
+      # Block overly broad exceptions
+      block_if:
+        - condition: "scope == 'global' AND duration > 7"
+          message: "Production-wide exceptions limited to 7 days maximum"
+        
+        - condition: "scope == 'cross-team' AND duration > 7"
+          message: "Cross-team exceptions limited to 7 days maximum"
+        
+        - condition: "environment == '*' AND duration > 14"
+          message: "All-environment exceptions limited to 14 days"
+      
+      # Suggest narrower scope
+      suggest_narrower_scope:
+        - condition: "scope == 'service' AND environments.length == 1"
+          suggestion: "Narrow to service-environment scope"
+        
+        - condition: "scope == 'team' AND services.length == 1"
+          suggestion: "Narrow to single service scope"
+        
+        - condition: "scope == 'cross-team' AND affected_services < 3"
+          suggestion: "Use separate per-service exceptions instead"

@@ -1,0 +1,39 @@
+# Bad Example: Overly Broad Scope
+
+exception_request:
+  service: "*" # All services
+  environment: "*" # All environments
+  scope: global # Broadest possible scope
+
+  guardrail: vulnerability_threshold
+  justification: |
+    Vulnerability scanner is too strict. We need more time to fix everything.
+
+  duration_days: 90 # Maximum duration
+  requested_by: "@bob-backend-team"
+  approver: "@bob-backend-team" # Self-approval attempt
+
+  blast_radius:
+    affected_services: ALL
+    affected_environments: ALL
+    affected_users: ALL
+
+  remediation:
+    target_date: "sometime next quarter"
+    plan: "We'll get to it eventually"
+    ticket: "none"
+
+why_this_is_bad:
+  global_scope: "Affects all services and environments"
+  production_impact: "All production users at risk"
+  long_duration: "90 days with no concrete plan"
+  self_approval: "Requestor and approver are same person"
+  no_remediation: "No specific plan or timeline"
+  wrong_mindset: "Views guardrails as obstacles, not protections"
+
+validation_failures:
+  - "Self-approval blocked by policy"
+  - "Global scope requires VP Engineering approval"
+  - "90-day duration exceeds 7-day maximum for global scope"
+  - "No concrete remediation plan"
+  - "Blast radius unnecessarily broad"
