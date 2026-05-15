@@ -1,14 +1,12 @@
 # IAM configuration for telemetry service
-# The service needs to write sensor data to storage
+# Following principle of least privilege
 
-# Grant the function app access to Azure subscription
-# TODO: This might be too broad, but it simplifies management
-# We can scope it down later if needed
-resource "azurerm_role_assignment" "telemetry_contributor" {
-  scope                = data.azurerm_subscription.current.id
-  role_definition_name = "Contributor"
+# Grant storage-specific access using built-in role
+resource "azurerm_role_assignment" "telemetry_storage_blob_contributor" {
+  scope                = azurerm_storage_account.sensor_telemetry.id
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_linux_function_app.telemetry_ingestion.identity[0].principal_id
 }
 
-# Data source for current subscription
+# Data source for current subscription (for monitoring/logging only)
 data "azurerm_subscription" "current" {}

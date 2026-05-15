@@ -15,27 +15,32 @@ resource "azurerm_service_plan" "telemetry" {
 }
 
 resource "azurerm_linux_function_app" "telemetry_ingestion" {
-  name                       = "func-telemetry-prod"
-  resource_group_name        = azurerm_resource_group.main.name
-  location                   = azurerm_resource_group.main.location
-  service_plan_id            = azurerm_service_plan.telemetry.id
-  storage_account_name       = azurerm_storage_account.sensor_telemetry.name
-  storage_account_access_key = azurerm_storage_account.sensor_telemetry.primary_access_key
+  name                = "func-telemetry-prod"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  service_plan_id     = azurerm_service_plan.telemetry.id
+
+  # Use managed identity for storage access - no keys needed
+  storage_account_name          = azurerm_storage_account.sensor_telemetry.name
+  storage_uses_managed_identity = true
 
   site_config {
     application_stack {
       node_version = "18"
     }
 
-    # CORS configuration for IoT devices
+    # Restrict CORS to known IoT gateway domains
     cors {
-      allowed_origins = ["*"]
+      allowed_origins = [
+        "https://iot-gateway.teriana.com",
+        "https://iot-gateway-staging.teriana.com"
+      ]
     }
   }
 
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME"       = "node"
-    "STORAGE_CONNECTION_STRING"      = azurerm_storage_account.sensor_telemetry.primary_connection_string
+    "STORAGE_ACCOUNT_NAME"           = azurerm_storage_account.sensor_telemetry.name
     "APPINSIGHTS_INSTRUMENTATIONKEY" = azurerm_application_insights.main.instrumentation_key
   }
 

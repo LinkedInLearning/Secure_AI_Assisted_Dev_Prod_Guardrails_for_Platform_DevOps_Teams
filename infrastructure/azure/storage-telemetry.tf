@@ -9,6 +9,21 @@ resource "azurerm_storage_account" "sensor_telemetry" {
   account_tier             = "Standard"
   account_replication_type = "LRS"
 
+  # Network security: Deny public access by default
+  public_network_access_enabled = false
+
+  network_rules {
+    default_action = "Deny"
+
+    # Allow access from Function App subnet
+    virtual_network_subnet_ids = [
+      azurerm_subnet.functions.id
+    ]
+
+    # Allow access from Azure services (for management)
+    bypass = ["AzureServices"]
+  }
+
   # Enable blob storage
   blob_properties {
     versioning_enabled = true
