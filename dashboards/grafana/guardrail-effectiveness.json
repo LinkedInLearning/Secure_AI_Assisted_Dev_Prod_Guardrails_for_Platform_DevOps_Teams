@@ -1,0 +1,82 @@
+{
+  "dashboard": {
+    "title": "Guardrail Effectiveness",
+    "panels": [
+      {
+        "title": "Safety: True vs False Positives",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum by (guardrail_type) (guardrail_verdicts_total{classification='true_positive'})",
+            "legendFormat": "{{guardrail_type}} - True Positives"
+          },
+          {
+            "expr": "sum by (guardrail_type) (guardrail_verdicts_total{classification='false_positive'})",
+            "legendFormat": "{{guardrail_type}} - False Positives"
+          }
+        ]
+      },
+      {
+        "title": "Friction: Average Time Blocked",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "avg by (guardrail_type) (guardrail_block_duration_seconds / 60)",
+            "legendFormat": "{{guardrail_type}}"
+          }
+        ],
+        "yAxis": {
+          "label": "Minutes"
+        }
+      },
+      {
+        "title": "Friction: Developer Satisfaction",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "avg by (guardrail_type) (developer_satisfaction_rating)",
+            "legendFormat": "{{guardrail_type}}"
+          }
+        ],
+        "yAxis": {
+          "min": 1,
+          "max": 5,
+          "label": "Satisfaction (1-5)"
+        }
+      },
+      {
+        "title": "Escape Rate: Active Exceptions",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "guardrail_exceptions_active",
+            "legendFormat": "{{guardrail_type}}"
+          }
+        ]
+      },
+      {
+        "title": "Overall Health Score",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "guardrail_health_score"
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 0,
+            "color": "red"
+          },
+          {
+            "value": 60,
+            "color": "yellow"
+          },
+          {
+            "value": 80,
+            "color": "green"
+          }
+        ]
+      }
+    ]
+  }
+}

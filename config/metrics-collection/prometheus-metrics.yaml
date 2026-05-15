@@ -1,0 +1,65 @@
+# Prometheus metrics for guardrail effectiveness
+
+# Safety metrics
+- name: guardrail_verdicts_total
+  type: counter
+  help: Total number of guardrail verdicts by type and classification
+  labels:
+    - guardrail_type
+    - verdict # block, warn, allow
+    - classification # true_positive, false_positive, false_negative
+
+- name: guardrail_precision_ratio
+  type: gauge
+  help: Precision ratio (true positives / total positives) per guardrail
+  labels:
+    - guardrail_type
+
+# Friction metrics
+- name: guardrail_block_duration_seconds
+  type: histogram
+  help: Time developers spend blocked by guardrails
+  labels:
+    - guardrail_type
+  buckets: [ 60, 300, 600, 1800, 3600, 7200 ] # 1m, 5m, 10m, 30m, 1h, 2h
+
+- name: developer_satisfaction_rating
+  type: gauge
+  help: Developer satisfaction rating (1-5 scale)
+  labels:
+    - guardrail_type
+
+- name: guardrail_iterations_required
+  type: histogram
+  help: Number of iterations required to pass guardrail
+  labels:
+    - guardrail_type
+  buckets: [ 1, 2, 3, 5, 10 ]
+
+# Escape rate metrics
+- name: guardrail_escapes_total
+  type: counter
+  help: Total number of guardrail bypasses
+  labels:
+    - guardrail_type
+    - escape_type # exception, workaround, shadow_it
+
+- name: guardrail_exceptions_active
+  type: gauge
+  help: Number of currently active exceptions per guardrail
+  labels:
+    - guardrail_type
+
+- name: guardrail_exception_duration_days
+  type: histogram
+  help: Duration of exceptions in days
+  labels:
+    - guardrail_type
+  buckets: [ 1, 7, 14, 30, 90, 365 ]
+
+# Overall health
+- name: guardrail_health_score
+  type: gauge
+  help: Overall health score (0-100) combining safety, friction, and escape rate
+  labels:
+    - guardrail_type

@@ -1,0 +1,75 @@
+# Alerting rules for guardrail effectiveness
+
+groups:
+  - name: guardrail_effectiveness
+    interval: 1h
+    rules:
+      # Safety: High false positive rate
+      - alert: HighFalsePositiveRate
+        expr: |
+          (
+            sum(guardrail_verdicts_total{classification="false_positive"})
+            /
+            sum(guardrail_verdicts_total{classification=~"true_positive|false_positive"})
+          ) > 0.3
+        for: 24h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Guardrail {{$labels.guardrail_type}} has high false positive rate"
+          description: "False positive rate is {{ $value | humanizePercentage }}.
+            Threshold is 30%. Consider tuning guardrail."
+
+      # Friction: Low developer satisfaction
+      - alert: LowDeveloperSatisfaction
+        expr: avg(developer_satisfaction_rating) by (guardrail_type) < 3.0
+        for: 7d
+        labels:
+          severity: warning
+        annotations:
+          summary: "Developers unhappy with {{$labels.guardrail_type}}"
+          description: "Average satisfaction is {{ $value }}/5. Investigate friction
+            sources."
+
+      # Friction: Long block times
+      - alert: HighAverageBlockTime
+        expr: avg(guardrail_block_duration_seconds) by (guardrail_type) > 1800
+        for: 7d
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{$labels.guardrail_type}} blocking developers for too long"
+          description: "Average block time is {{ $value | humanizeDuration }}. Consider
+            improving error messages or automation."
+
+      # Escape rate: Too many exceptions
+      - alert: HighExceptionRate
+        expr: sum(rate(guardrail_escapes_total{escape_type="exception"}[7d])) by
+          (guardrail_type) > 10
+        for: 1d
+        labels:
+          severity: warning
+        annotations:
+          summary: "High exception rate for {{$labels.guardrail_type}}"
+          description: "{{ $value }} exceptions granted in 7 days. Investigate if
+            guardrail is too strict."
+
+      # Escape rate: Permanent exceptions accumulating
+      - alert: PermanentExceptionsAccumulating
+        expr: guardrail_exceptions_active{status="permanent"} > 5
+        for: 1d
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{$labels.guardrail_type}} has {{$value}} permanent exceptions"
+          description: "Permanent exceptions erode standards. Investigate root causes."
+
+      # Overall: Health score declining
+      - alert: GuardrailHealthDeclining
+        expr: guardrail_health_score < 60
+        for: 7d
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{$labels.guardrail_type}} health score is {{$value}}/100"
+          description: "Health declining. Check safety, friction, and escape metrics."
