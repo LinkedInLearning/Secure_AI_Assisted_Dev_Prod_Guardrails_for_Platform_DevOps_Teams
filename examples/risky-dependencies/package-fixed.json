@@ -1,0 +1,35 @@
+{
+  "name": "sensor-data-api",
+  "version": "2.1.0",
+  "description": "API for sensor data processing - dependencies audited and updated",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "audit": "npm audit",
+    "check-licenses": "license-checker --summary",
+    "check-deps": "npm outdated"
+  },
+  "dependencies": {
+    "express": "4.19.2",
+    "lodash": "4.17.21",
+    "date-fns": "3.6.0",
+    "axios": "1.7.2",
+    "validator": "13.12.0",
+    "uuid": "9.0.1",
+    "jsonwebtoken": "9.0.2",
+    "bcrypt": "5.1.1",
+    "dotenv": "16.4.5"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.21",
+    "@types/node": "20.12.12",
+    "typescript": "5.4.5",
+    "ts-node": "10.9.2",
+    "jest": "29.7.0",
+    "license-checker": "25.0.1",
+    "snyk": "1.1291.0"
+  }
+}

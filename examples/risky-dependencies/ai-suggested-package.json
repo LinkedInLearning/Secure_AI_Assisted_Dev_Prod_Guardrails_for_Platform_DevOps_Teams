@@ -1,0 +1,34 @@
+{
+  "name": "sensor-data-api",
+  "version": "2.1.0",
+  "description": "API for sensor data processing - dependencies suggested by AI assistant",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "test": "jest",
+    "audit": "npm audit",
+    "check-licenses": "license-checker --summary"
+  },
+  "dependencies": {
+    "express": "4.17.1",
+    "lodash": "4.17.20",
+    "moment": "2.29.1",
+    "request": "2.88.2",
+    "validator": "13.5.2",
+    "uuid": "8.3.2",
+    "axios": "0.21.1",
+    "jsonwebtoken": "8.5.1",
+    "bcrypt": "5.0.1",
+    "dotenv": "10.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "4.17.13",
+    "@types/node": "16.11.7",
+    "typescript": "4.5.2",
+    "ts-node": "10.4.0",
+    "jest": "27.3.1",
+    "license-checker": "25.0.1"
+  }
+}
