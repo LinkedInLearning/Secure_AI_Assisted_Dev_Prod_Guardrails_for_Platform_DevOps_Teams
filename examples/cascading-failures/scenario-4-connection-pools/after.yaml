@@ -1,0 +1,51 @@
+# AFTER: Connection pooling contains blast radius
+# Timeline with connection pool:
+# 1. Traffic spike: 1000 requests/second
+# 2. api-gateway uses connection pool (10 connections max)
+# 3. Requests queue waiting for available connection
+# 4. Database never exceeds safe connection count
+# 5. Requests timeout if queue too long
+# 6. Service stays responsive with bounded resources
+# Result: Traffic spike → degraded performance, not failure
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://db.production.svc:5432/teriana"
+            - name: DB_POOL_SIZE
+              value: "10" # MAX 10 CONNECTIONS PER POD
+            - name: DB_POOL_QUEUE_TIMEOUT_MS
+              value: "5000" # Queue request for max 5 seconds
+            - name: DB_POOL_IDLE_TIMEOUT_MS
+              value: "30000" # Close idle connections after 30s
+          ports:
+            - containerPort: 80
+            # WITH CONNECTION POOL:
+            # - Bounded connection count protects database
+            # - Requests queue instead of spawning unlimited connections
+            # - Timeout prevents infinite waiting
+            # - Database stays stable under load

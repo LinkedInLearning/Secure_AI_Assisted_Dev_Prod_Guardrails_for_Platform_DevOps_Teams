@@ -1,0 +1,93 @@
+# BEFORE: Single pod failure cascades to entire node
+# Timeline of failure:
+# 1. sensor-processor has memory leak (no limit)
+# 2. Consumes all node memory (16GB)
+# 3. Kernel OOM killer starts killing processes
+# 4. api-gateway killed (also on same node)
+# 5. payment-processor killed (also on same node)
+# 6. Node becomes unschedulable
+# Result: 1 bug → 3 services down
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sensor-processor
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sensor-processor
+  template:
+    metadata:
+      labels:
+        app: sensor-processor
+    spec:
+      containers:
+      - name: processor
+        image: teriana/sensor-processor:v1.2.0
+        # NO RESOURCE LIMITS
+        # Bug in v1.2.0 causes memory leak
+        # Without limits, consumes all node memory
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+      - name: gateway
+        image: teriana/api-gateway:v2.1.0
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        ports:
+        - containerPort: 80
+        # Even with limits, gets killed by OOM when node runs out of memory
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-processor
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: payment-processor
+  template:
+    metadata:
+      labels:
+        app: payment-processor
+    spec:
+      containers:
+      - name: processor
+        image: teriana/payment-processor:v3.0.0
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        # Also killed when node exhausts memory

@@ -1,0 +1,41 @@
+# BEFORE: Dead pods amplify user-facing errors
+# Timeline of failure:
+# 1. Database connection pool exhausted
+# 2. api-gateway pods can't connect to database
+# 3. Pods return 500 errors
+# 4. NO READINESS PROBE - pods stay in service
+# 5. Load balancer sends traffic to dead pods
+# 6. 100% of user requests fail
+# Result: All pods broken → 100% error rate
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 80
+            # NO READINESS PROBE
+            # Pod stays in service even when unhealthy
+            # Load balancer continues routing traffic
+            # Every request fails

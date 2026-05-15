@@ -1,0 +1,43 @@
+# BEFORE: Unbounded connections exhaust downstream service
+# Timeline of failure:
+# 1. Traffic spike: 1000 requests/second
+# 2. api-gateway opens unlimited connections to database
+# 3. Database connection limit reached (100 connections)
+# 4. New connections rejected
+# 5. api-gateway keeps trying, exhausts threads
+# 6. Both api-gateway and database overloaded
+# Result: Traffic spike → both services down
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://db.production.svc:5432/teriana"
+            # NO CONNECTION POOL LIMITS
+            # Opens new connection per request
+            # Overwhelms database during traffic spikes
+          ports:
+            - containerPort: 80

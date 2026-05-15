@@ -1,0 +1,50 @@
+# AFTER: Failed pods removed from service
+# Timeline with readiness probe:
+# 1. Database connection pool exhausted
+# 2. api-gateway pods can't connect to database
+# 3. Pods return 500 errors
+# 4. READINESS PROBE FAILS - pods removed from service
+# 5. Load balancer sends traffic only to healthy pods
+# 6. Degraded capacity but working requests
+# Result: Partial failure → reduced capacity, not total outage
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          # WITH READINESS PROBE:
+          # - Unhealthy pods removed from service
+          # - Traffic only to working pods
+          # - Partial capacity maintained
+          # /ready endpoint checks database connectivity

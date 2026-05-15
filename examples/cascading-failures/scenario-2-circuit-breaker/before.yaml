@@ -1,0 +1,44 @@
+# BEFORE: Dependency failure cascades to all callers
+# Timeline of failure:
+# 1. Database becomes slow (5 second queries)
+# 2. api-gateway threads wait for database
+# 3. All 200 threads blocked waiting
+# 4. api-gateway stops accepting new requests
+# 5. Load balancer retries failed requests
+# 6. Other api-gateway instances also exhaust threads
+# Result: 1 slow database → all API instances down
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: teriana/api-gateway:v2.1.0
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          env:
+            - name: DATABASE_URL
+              value: "postgresql://db.production.svc:5432/teriana"
+            # NO CIRCUIT BREAKER
+            # NO TIMEOUT CONFIGURATION
+            # Requests wait indefinitely for database
+            # Exhausts thread pool
+          ports:
+            - containerPort: 80
