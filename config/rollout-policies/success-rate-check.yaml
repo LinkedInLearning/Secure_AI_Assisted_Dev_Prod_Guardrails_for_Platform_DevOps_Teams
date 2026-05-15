@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate-check
+  namespace: production
+spec:
+  metrics:
+    - name: success-rate
+      interval: 1m
+      successCondition: result > 0.95 # Greater than 95% success rate
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              status=~"2..|3..",
+              version="canary"
+            }[2m])) 
+            / 
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              version="canary"
+            }[2m]))

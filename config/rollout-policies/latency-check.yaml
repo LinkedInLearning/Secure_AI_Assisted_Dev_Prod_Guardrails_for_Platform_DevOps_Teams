@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: latency-check
+  namespace: production
+spec:
+  metrics:
+    - name: p95-latency
+      interval: 1m
+      successCondition: result < 500 # P95 latency under 500ms
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_ms_bucket{
+                app="sensor-data-api",
+                version="canary"
+              }[2m])) by (le)
+            )

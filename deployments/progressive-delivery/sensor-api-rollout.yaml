@@ -1,0 +1,81 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: sensor-data-api
+  namespace: production
+spec:
+  replicas: 10
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: sensor-data-api
+  template:
+    metadata:
+      labels:
+        app: sensor-data-api
+    spec:
+      containers:
+        - name: api
+          image: teriana/sensor-data-api:v2.3.0
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+  strategy:
+    canary:
+      # Progressive traffic shifting
+      steps:
+        - setWeight: 5 # Start with 5% traffic to canary
+        - pause:
+            duration: 5m # Monitor for 5 minutes
+
+        - setWeight: 25 # Increase to 25%
+        - pause:
+            duration: 5m
+
+        - setWeight: 50 # Increase to 50%
+        - pause:
+            duration: 10m # Monitor longer at 50%
+
+        - setWeight: 75 # Increase to 75%
+        - pause:
+            duration: 5m
+        # If all checks pass, promote to 100%
+
+        # Automated analysis during rollout
+      analysis:
+        templates:
+          - templateName: error-rate-check
+          - templateName: latency-check
+          - templateName: success-rate-check
+        startingStep: 1 # Run analysis starting at first canary step
+
+      # Automatic rollback configuration
+      maxSurge: "25%"
+      maxUnavailable: 0
+
+      # Traffic routing via service mesh
+      trafficRouting:
+        istio:
+          virtualService:
+            name: sensor-api-vsvc
+            routes:
+              - primary

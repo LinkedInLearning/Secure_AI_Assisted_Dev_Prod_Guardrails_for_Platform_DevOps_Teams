@@ -1,0 +1,66 @@
+# Progressive Delivery Policy
+# Defines how rollouts progress and when to rollback
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: progressive-delivery-policy
+  namespace: production
+data:
+  policy.yaml: |
+    # Traffic progression schedule
+    traffic_progression:
+      - weight: 5
+        duration: 5m
+      - weight: 25
+        duration: 5m
+      - weight: 50
+        duration: 10m  # Monitor longer at 50%
+      - weight: 75
+        duration: 5m
+      - weight: 100
+
+    # Health check gates
+    health_checks:
+      error_rate:
+        threshold: 0.05        # 5% max error rate
+        comparison: less_than
+        failure_limit: 3       # Rollback after 3 consecutive failures
+      
+      latency_p95:
+        threshold: 500         # 500ms max P95 latency
+        comparison: less_than
+        failure_limit: 3
+      
+      success_rate:
+        threshold: 0.95        # 95% min success rate
+        comparison: greater_than
+        failure_limit: 3
+      
+      # Additional checks
+      latency_p99:
+        threshold: 2000        # 2s max P99 latency
+        comparison: less_than
+        failure_limit: 3
+      
+      cpu_usage:
+        threshold: 80          # 80% max CPU
+        comparison: less_than
+        failure_limit: 5
+      
+      memory_usage:
+        threshold: 90          # 90% max memory
+        comparison: less_than
+        failure_limit: 5
+
+    # Automatic rollback configuration
+    rollback:
+      enabled: true
+      on_failure: immediate    # Rollback immediately when threshold exceeded
+      traffic_shift_duration: 30s  # How quickly to shift traffic back
+
+    # Blast radius limits
+    blast_radius:
+      max_canary_percentage: 50  # Never exceed 50% before extended monitoring
+      extended_monitoring_at: 50 # Extra monitoring at 50%
+      extended_monitoring_duration: 10m

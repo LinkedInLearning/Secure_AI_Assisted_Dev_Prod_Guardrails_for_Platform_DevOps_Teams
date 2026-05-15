@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-check
+  namespace: production
+spec:
+  metrics:
+    - name: error-rate
+      interval: 1m
+      successCondition: result < 0.05 # Less than 5% error rate
+      failureLimit: 3 # Fail after 3 consecutive failures
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              status=~"5..",
+              version="canary"
+            }[2m])) 
+            / 
+            sum(rate(http_requests_total{
+              app="sensor-data-api",
+              version="canary"
+            }[2m]))
