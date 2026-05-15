@@ -1,0 +1,192 @@
+# Complete Rollback Playbook
+# Catches progressive degradation and resource exhaustion
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rollback-playbook
+  namespace: production
+data:
+  rollback-triggers.yaml: |
+    # 1. ERROR RATE MONITORING
+    error_rate:
+      # Always monitor error rate at all traffic levels
+      enabled: true
+      threshold: 0.05              # 5% maximum
+      window: 2m
+      consecutive_failures: 3
+      severity: critical
+      
+      # Tighter thresholds at higher traffic
+      progressive_thresholds:
+        - traffic_percentage: 5
+          threshold: 0.10          # 10% at 5% traffic (small sample)
+        - traffic_percentage: 25
+          threshold: 0.05          # 5% at 25% traffic
+        - traffic_percentage: 50
+          threshold: 0.03          # 3% at 50% traffic
+        - traffic_percentage: 75
+          threshold: 0.02          # 2% at 75% traffic (high confidence)
+
+    # 2. LATENCY MONITORING (Multiple Percentiles)
+    latency:
+      p50:
+        threshold: 200             # 200ms
+        window: 2m
+        consecutive_failures: 3
+        severity: medium
+      
+      p95:
+        threshold: 500             # 500ms
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      p99:
+        threshold: 2000            # 2s
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      # Latency regression (canary vs stable)
+      regression:
+        threshold: 1.5             # 50% slower than stable
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      # Latency growth rate
+      growth_rate:
+        threshold: 2.0             # 2x increase within window
+        window: 10m                # Over 10 minutes
+        severity: high
+
+    # 3. SUCCESS RATE MONITORING
+    success_rate:
+      threshold: 0.95              # 95% minimum
+      window: 2m
+      consecutive_failures: 3
+      severity: critical
+
+    # 4. THROUGHPUT MONITORING
+    throughput:
+      # Absolute throughput drop
+      drop_threshold: 0.80         # 20% drop (tighter than before)
+      window: 5m
+      consecutive_failures: 2
+      severity: high
+      
+      # Rapid throughput decline rate
+      decline_rate:
+        threshold: 0.10            # 10% drop in 5 minutes
+        window: 5m
+        severity: high
+
+    # 5. RESOURCE EXHAUSTION SIGNALS
+    resources:
+      # Connection pool monitoring
+      connection_pool:
+        warning_threshold: 0.70    # Warn at 70%
+        critical_threshold: 0.80   # Rollback at 80%
+        window: 2m
+        consecutive_failures: 2
+        severity: critical
+      
+      # Memory usage
+      memory:
+        absolute_threshold: 0.90   # 90% memory
+        window: 5m
+        consecutive_failures: 3
+        severity: high
+        
+        # Memory growth rate
+        growth_rate:
+          threshold: 0.15          # 15% growth in 5 minutes
+          window: 5m
+          severity: high
+      
+      # CPU usage
+      cpu:
+        threshold: 0.85            # 85% CPU
+        window: 5m
+        consecutive_failures: 3
+        severity: high
+      
+      # File descriptors
+      file_descriptors:
+        threshold: 0.80            # 80% of limit
+        window: 2m
+        consecutive_failures: 2
+        severity: high
+      
+      # OOM kills
+      oom_kills:
+        threshold: 1               # Any OOM kill
+        severity: critical
+
+    # 6. HEALTH CHECK FAILURES
+    health_checks:
+      liveness_failures:
+        threshold: 2               # 2 consecutive failures
+        severity: critical
+      
+      readiness_failures:
+        threshold: 5               # 5 consecutive failures
+        severity: high
+      
+      startup_failures:
+        threshold: 3               # 3 consecutive failures
+        severity: critical
+
+    # 7. CUSTOM BUSINESS METRICS
+    custom_metrics:
+      # Database query errors
+      database_errors:
+        threshold: 0.02            # 2% max database error rate
+        window: 2m
+        consecutive_failures: 3
+        severity: high
+      
+      # Cache hit rate
+      cache_hit_rate:
+        threshold: 0.80            # 80% minimum
+        window: 5m
+        consecutive_failures: 3
+        severity: medium
+
+    # 8. PROGRESSIVE DEGRADATION DETECTION
+    progressive_degradation:
+      # Detect sustained metric degradation over time
+      enabled: true
+      
+      # Multiple metrics degrading simultaneously
+      multi_metric_threshold: 3    # Rollback if 3+ metrics degrading
+      
+      # Metric degradation definitions
+      degradation_signals:
+        - metric: error_rate
+          increase_threshold: 2.0  # 2x increase
+        - metric: latency_p99
+          increase_threshold: 1.5  # 1.5x increase
+        - metric: memory_usage
+          increase_threshold: 1.3  # 30% increase
+        - metric: connection_pool_usage
+          increase_threshold: 1.4  # 40% increase
+
+    # 9. ROLLBACK EXECUTION CONFIG
+    rollback_execution:
+      mode: immediate              # immediate | gradual
+      traffic_shift_duration: 30s
+      keep_canary_pods: true       # For debugging
+      
+      # Cooldown after rollback
+      cooldown_period: 10m
+      
+      # Notifications
+      notification_channels:
+        - slack
+        - pagerduty
+      
+      # Automatic incident creation
+      create_incident: true
+      incident_severity: high

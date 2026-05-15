@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: memory-growth-rate-monitor
+  namespace: production
+spec:
+  metrics:
+    - name: memory-growth-rate
+      interval: 2m
+      failureLimit: 3
+      # Rollback if memory grows >15% in 5 minutes
+      successCondition: result < 0.15
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            (
+              max(container_memory_usage_bytes{
+                app="sensor-data-api",
+                version="canary"
+              })
+              -
+              max(container_memory_usage_bytes{
+                app="sensor-data-api",
+                version="canary"
+              } offset 5m)
+            )
+            /
+            max(container_memory_limit_bytes{
+              app="sensor-data-api",
+              version="canary"
+            })

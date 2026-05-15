@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: connection-pool-monitor
+  namespace: production
+spec:
+  metrics:
+    - name: connection-pool-usage
+      interval: 1m
+      failureLimit: 2
+      # Rollback if connection pool exceeds 80%
+      successCondition: result < 0.80
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            max(
+              database_connection_pool_active{
+                app="sensor-data-api",
+                version="canary"
+              }
+              /
+              database_connection_pool_max{
+                app="sensor-data-api",
+                version="canary"
+              }
+            )

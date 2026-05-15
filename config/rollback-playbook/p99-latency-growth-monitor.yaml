@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: p99-latency-growth-monitor
+  namespace: production
+spec:
+  metrics:
+    - name: p99-latency-growth
+      interval: 2m
+      failureLimit: 3
+      # Rollback if P99 latency doubles in 10 minutes
+      successCondition: result < 2.0
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring:9090
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_ms_bucket{
+                app="sensor-data-api",
+                version="canary"
+              }[2m])) by (le)
+            )
+            /
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_ms_bucket{
+                app="sensor-data-api",
+                version="canary"
+              }[2m] offset 10m)) by (le)
+            )
