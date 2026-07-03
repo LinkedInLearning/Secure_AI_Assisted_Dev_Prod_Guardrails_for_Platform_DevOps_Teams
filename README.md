@@ -1,4 +1,4 @@
-# Building Platform Guardrails for AI‑Generated Code:  Reliable AI‑Assisted Development at Scale
+# Secure AI-Assisted Development in Production: Practical Guardrails for Platform and DevOps Teams
 This is the repository for the LinkedIn Learning course `Building Platform Guardrails for AI‑Generated Code:  Reliable AI‑Assisted Development at Scale`. The full course is available from [LinkedIn Learning][lil-course-url].
 
 ![course-name-alt-text][lil-thumbnail-url] 
