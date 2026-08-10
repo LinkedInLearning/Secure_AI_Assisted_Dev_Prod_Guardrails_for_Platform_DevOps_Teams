@@ -2,6 +2,7 @@
 This is the repository for the LinkedIn Learning course `Secure AI-Assisted Development in Production: Practical Guardrails for Platform and DevOps Teams`. The full course is available from [LinkedIn Learning][lil-course-url].
 
 ![course-name-alt-text][lil-thumbnail-url] 
+Robust platform guardrails are needed for AI-generated code to ensure reliability and security. Explore techniques for catching unsafe changes, maintaining efficiency, and more.
 
 _See the readme file in the main branch for updated instructions and information._
 ## Instructions
